@@ -514,16 +514,16 @@ class LiteLLMCallable(PromptCallableBase):
             )
 
         trace_operation(output_mime_type="application/json", output_value=response)
-        if response.choices[0].message.content is not None:  # type: ignore
-            output = response.choices[0].message.content  # type: ignore
-        else:
+        choice = response.choices[0]  # type: ignore
+        try:
+            output = choice.message.function_call.arguments  # type: ignore
+        except AttributeError:
             try:
-                output = response.choices[0].message.function_call.arguments  # type: ignore
-            except AttributeError:
-                try:
-                    choice = response.choices[0]  # type: ignore
-                    output = choice.message.tool_calls[-1].function.arguments  # type: ignore
-                except AttributeError as ae_tools:
+                output = choice.message.tool_calls[-1].function.arguments  # type: ignore
+            except AttributeError as ae_tools:
+                if choice.message.content is not None:  # type: ignore
+                    output = choice.message.content  # type: ignore
+                else:
                     raise ValueError(
                         "No message content or function"
                         " call arguments returned from OpenAI"
